@@ -1,0 +1,100 @@
+version: '3.7'
+
+volumes:
+  ecommerce-microservice-tutorial-data-cart: {}
+  ecommerce-microservice-tutorial-data-stock: {}
+  rabbitdata: {}
+  rabbitlogs: {}
+
+networks:
+  ecommerce-microservice-tutorial-net:
+    external: false
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    hostname: rabbitmq
+    volumes:
+      - rabbitdata:/var/lib/rabbitmq/mnesia/rabbit@my-rabbit
+      - rabbitlogs:/var/log/rabbitmq/log
+    ports:
+      - 5672:5672
+      - 15672:15672
+    networks:
+      - ecommerce-microservice-tutorial-net
+  ecommerce-microservice-tutorial-net-cart:
+    image: docker.io/fleotta/ecommerce-microservice-tutorial-cart:test
+    hostname: ecommerce-microservice-tutorial-net-cart
+    environment:
+      POSTGRES_HOST: db_cart
+      POSTGRES_DATABASENAME: cart_microservice_db
+      POSTGRES_PASSWORD: admin
+      POSTGRES_USERNAME: postgres
+    restart: always
+    depends_on:
+      - db_cart
+    cap_drop:
+      - all
+    read_only: true
+    ports:
+      - '8081:8080'
+    networks:
+      - ecommerce-microservice-tutorial-net
+  ecommerce-microservice-tutorial-net-stock:
+    image: docker.io/fleotta/ecommerce-microservice-tutorial-stock:test
+    hostname: ecommerce-microservice-tutorial-net-cart-stock
+    environment:
+      POSTGRES_HOST: db_stock
+      POSTGRES_DATABASENAME: stock_microservice_db
+      POSTGRES_PASSWORD: admin
+      POSTGRES_USERNAME: postgres
+    restart: always
+    depends_on:
+      - db_stock
+      - rabbitmq
+    cap_drop:
+      - all
+    read_only: true
+    ports:
+      - '9090:8080'
+    networks:
+      - ecommerce-microservice-tutorial-net
+      
+  db_stock:
+    image: postgres:9.5
+    hostname: db_stock
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: stock_microservice_db
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    restart: on-failure
+    stdin_open: true
+    tty: true
+    networks:
+      - ecommerce-microservice-tutorial-net
+    volumes:
+      - ecommerce-microservice-tutorial-data-stock:/var/lib/postgresql/data
+  db_cart:
+    image: postgres:9.5
+    hostname: db_cart
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: cart_microservice_db
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    restart: on-failure
+    stdin_open: true
+    tty: true
+    networks:
+      - ecommerce-microservice-tutorial-net
+    volumes:
+      - ecommerce-microservice-tutorial-data-cart:/var/lib/postgresql/data
