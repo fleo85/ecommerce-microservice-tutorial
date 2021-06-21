@@ -24,7 +24,7 @@ services:
       - "27017:27017"
     networks:
       - ecommerce-microservice-tutorial-net
-  rabbitmq:
+  rabbitmqhost:
     image: rabbitmq:3-management-alpine
     hostname: rabbitmqhost
     volumes:
@@ -38,8 +38,9 @@ services:
   ecommerce-cqrs-consumer:
     image: docker.io/fleotta/ecommerce-cqrs-consumer:test
     hostname: ecommerce-cqrs-consumer
+    restart: always
     depends_on:
-      - rabbitmq
+      - rabbitmqhost
       - mongodb
     networks:
       - ecommerce-microservice-tutorial-net
@@ -67,7 +68,7 @@ services:
       - all
     read_only: true
     ports:
-      - '8081:8080'
+      - '8080:8080'
     networks:
       - ecommerce-microservice-tutorial-net
   ecommerce-microservice-tutorial-net-stock:
@@ -81,7 +82,7 @@ services:
     restart: always
     depends_on:
       - db_stock
-      - rabbitmq
+      - rabbitmqhost
     cap_drop:
       - all
     read_only: true
