@@ -5,21 +5,51 @@ volumes:
   ecommerce-microservice-tutorial-data-stock: {}
   rabbitdata: {}
   rabbitlogs: {}
+  mongodata: {}
+  mongologs: {}
 
 networks:
   ecommerce-microservice-tutorial-net:
     external: false
 
 services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    hostname: mongodbhost
+    volumes:
+      - mongodata:/data/db/
+      - mongologs:/var/log/mongodb/
+    ports:
+      - "27017:27017"
+    networks:
+      - ecommerce-microservice-tutorial-net
   rabbitmq:
     image: rabbitmq:3-management-alpine
-    hostname: rabbitmq
+    hostname: rabbitmqhost
     volumes:
       - rabbitdata:/var/lib/rabbitmq/mnesia/rabbit@my-rabbit
       - rabbitlogs:/var/log/rabbitmq/log
     ports:
       - 5672:5672
       - 15672:15672
+    networks:
+      - ecommerce-microservice-tutorial-net
+  ecommerce-cqrs-consumer:
+    image: docker.io/fleotta/ecommerce-cqrs-consumer:test
+    hostname: ecommerce-cqrs-consumer
+    depends_on:
+      - rabbitmq
+      - mongodb
+    networks:
+      - ecommerce-microservice-tutorial-net
+  ecommerce-cqrs-rest:
+    image: docker.io/fleotta/ecommerce-cqrs-rest:test
+    hostname: ecommerce-cqrs-rest
+    depends_on:
+      - mongodb
+    ports:
+      - 8001:8080
     networks:
       - ecommerce-microservice-tutorial-net
   ecommerce-microservice-tutorial-net-cart:
